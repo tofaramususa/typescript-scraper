@@ -1,0 +1,113 @@
+{
+  "id": 1547,
+  "filename": "0580_s23_qp_11.pdf",
+  "file_path": "/papers/2023/may-june/mathematics/0580_s23_qp_11.pdf",
+  "file_size_bytes": 2048576,
+  "paper_url": "https://cdn.sylabl.com/papers/0580_s23_qp_11.pdf",
+  "download_url": "https://api.sylabl.com/v1/papers/1547/download",
+  
+  "subject_code": "0580",
+  "subject_name": "Mathematics",
+  "subject_category": "Mathematics",
+  
+  "session_code": "s23", 
+  "session_full": "May/June 2023",
+  "session_period": "May/June",
+  "year": 2023,
+  
+  "paper_type_code": "qp",
+  "paper_type_full": "Question Paper",
+  
+  "component": "11",
+  "paper_number": 1,
+  "variant": 1,
+  "tier": "Core",
+  
+  "search_key": "0580_2023_MayJune_1",
+  "display_name": "Mathematics Paper 1 May/June 2023",
+  "full_display": "Cambridge IGCSE Mathematics (0580) - Paper 1 Core - May/June 2023 - Variant 1",
+  
+  "metadata": {
+    "duration_minutes": 90,
+    "total_marks": 80,
+    "question_count": 25,
+    "has_calculator": false,
+    "has_formula_sheet": true,
+    "paper_format": "structured",
+    "extracted_at": "2024-03-15T10:30:00Z"
+  },
+  
+  "related_papers": {
+    "mark_scheme": {
+      "id": 1548,
+      "filename": "0580_s23_ms_11.pdf",
+      "paper_url": "https://cdn.sylabl.com/papers/0580_s23_ms_11.pdf"
+    },
+    "examiner_report": {
+      "id": 1549, 
+      "filename": "0580_s23_er_1.pdf",
+      "paper_url": "https://cdn.sylabl.com/papers/0580_s23_er_1.pdf"
+    },
+    "grade_thresholds": {
+      "id": 1550,
+      "filename": "0580_s23_gt.pdf", 
+      "paper_url": "https://cdn.sylabl.com/papers/0580_s23_gt.pdf"
+    },
+    "other_variants": [
+      {
+        "id": 1551,
+        "variant": 2,
+        "filename": "0580_s23_qp_12.pdf",
+        "paper_url": "https://cdn.sylabl.com/papers/0580_s23_qp_12.pdf"
+      },
+      {
+        "id": 1552,
+        "variant": 3, 
+        "filename": "0580_s23_qp_13.pdf",
+        "paper_url": "https://cdn.sylabl.com/papers/0580_s23_qp_13.pdf"
+      }
+    ]
+  },
+  
+  "topics": [
+    "Number",
+    "Algebra", 
+    "Geometry",
+    "Statistics"
+  ],
+  
+  "difficulty_stats": {
+    "estimated_difficulty": "medium",
+    "pass_rate_estimate": 0.72,
+    "common_mistakes": ["Arithmetic errors", "Unit conversion"]
+  },
+  
+  "usage_stats": {
+    "view_count": 1247,
+    "download_count": 892,
+    "last_accessed": "2024-06-08T15:22:00Z"
+  },
+  
+  "timestamps": {
+    "created_at": "2024-01-15T09:00:00Z",
+    "updated_at": "2024-06-08T15:22:00Z",
+    "indexed_at": "2024-01-15T09:05:00Z"
+  },
+  
+  "search_tags": [
+    "mathematics",
+    "igcse", 
+    "core",
+    "paper-1",
+    "may-june-2023",
+    "variant-1",
+    "question-paper"
+  ],
+  
+  "api_endpoints": {
+    "self": "https://api.sylabl.com/v1/papers/1547",
+    "download": "https://api.sylabl.com/v1/papers/1547/download",
+    "related": "https://api.sylabl.com/v1/papers/1547/related",
+    "similar": "https://api.sylabl.com/v1/papers/1547/similar"
+  }
+}

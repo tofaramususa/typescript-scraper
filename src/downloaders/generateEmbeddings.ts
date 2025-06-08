@@ -1,0 +1,1 @@
+// Here is to create embeddings to be stored in the database
