@@ -1,0 +1,39 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "past-papers-scraper-api"
+main = "worker/index.ts"
+compatibility_date = "2024-07-24"
+compatibility_flags = ["nodejs_compat"]
+
+# Environment variables
+[vars]
+NODE_ENV = "production"
+
+# Secrets (set via wrangler secret put)
+# DATABASE_URL (set via: wrangler secret put DATABASE_URL)
+# R2_ACCOUNT_ID (set via: wrangler secret put R2_ACCOUNT_ID)
+# R2_ACCESS_KEY_ID (set via: wrangler secret put R2_ACCESS_KEY_ID)
+# R2_SECRET_ACCESS_KEY (set via: wrangler secret put R2_SECRET_ACCESS_KEY)
+# R2_BUCKET_NAME (set via: wrangler secret put R2_BUCKET_NAME)
+# OPENAI_API_KEY (set via: wrangler secret put OPENAI_API_KEY)
+
+# R2 Bucket binding
+[[r2_buckets]]
+binding = "PAPERS_BUCKET"
+bucket_name = "cambridge-igcse-past-papers-pdf"
+
+# Queue for background processing (disabled for free plan)
+# [[queues.producers]]
+# queue = "scraper-queue"
+# binding = "SCRAPER_QUEUE"
+
+# [[queues.consumers]]
+# queue = "scraper-queue"
+
+# KV for job status tracking
+[[kv_namespaces]]
+binding = "JOB_STATUS"
+id = "2fd796531ff54144be1de4157bb17485"
+
+# Database (Neon via HTTP)
+[env.production]
+[env.production.vars]

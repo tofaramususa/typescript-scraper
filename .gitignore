@@ -23,6 +23,7 @@ node_modules/
 *.sw?
 # OS specific
 .DS_Store
+.wrangler
 
 # Task files
 # tasks.json
