@@ -35,7 +35,6 @@ export class R2StorageClient {
       },
     });
   }
-
   /**
    * Upload a file to R2
    */
@@ -53,18 +52,15 @@ export class R2StorageClient {
         Metadata: options.metadata,
         CacheControl: options.cacheControl,
       });
-
       await this.client.send(command);
-      
       return {
         key,
-        url: `https://${this.bucketName}.r2.dev/${key}` // Adjust based on your R2 public URL setup
+        url: this.generatePublicUrl(key)
       };
     } catch (error) {
       throw new Error(`Failed to upload ${key}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
-
   /**
    * Download a file from R2
    */
@@ -86,7 +82,6 @@ export class R2StorageClient {
       for await (const chunk of response.Body as any) {
         chunks.push(chunk);
       }
-      
       return Buffer.concat(chunks);
     } catch (error) {
       throw new Error(`Failed to download ${key}: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -123,6 +118,15 @@ export class R2StorageClient {
     } catch (error) {
       throw new Error(`Failed to delete ${key}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  /**
+   * Generate public URL for R2 object
+   */
+  generatePublicUrl(key: string): string {
+    // Use custom domain if R2_CUSTOM_DOMAIN is set, otherwise use R2.dev domain
+    const domain = process.env.R2_CUSTOM_DOMAIN || `${this.bucketName}.r2.dev`;
+    return `https://${domain}/${key}`;
   }
 
   /**
@@ -169,8 +173,7 @@ export class R2StorageClient {
     
     // Process uploads in batches
     for (let i = 0; i < uploads.length; i += concurrency) {
-      const batch = uploads.slice(i, i + concurrency);
-      
+      const batch = uploads.slice(i, i + concurrency); 
       const batchPromises = batch.map(async ({ key, data, options }) => {
         try {
           const result = await this.upload(key, data, options);
@@ -184,11 +187,9 @@ export class R2StorageClient {
           };
         }
       });
-
       const batchResults = await Promise.all(batchPromises);
       results.push(...batchResults);
     }
-
     return results;
   }
 }
@@ -217,30 +218,36 @@ export class ScraperStorageManager {
   constructor(r2Client: R2StorageClient) {
     this.r2 = r2Client;
   }
-
   /**
    * Store a scraped PDF with organized naming
    */
   async storePastPaper(
     examBoard: string,
     subject: string,
+    subjectCode: string,
+    level: string,
     year: string,
     session: string,
     paperNumber: string,
     pdfBuffer: Buffer,
+    paperType: 'qp' | 'ms' = 'qp',
     originalUrl?: string
   ): Promise<string> {
-    // Organized key structure: examboard/subject/year/session/paper.pdf
-    const key = `past-papers/${examBoard.toLowerCase()}/${subject.toLowerCase()}/${year}/${session}/${paperNumber}.pdf`;
-    
+    // Organized key structure: examboard/level/subjectcode/year/session/paper_type.pdf
+    const key = `past-papers/${examBoard.toLowerCase()}/${level.toLowerCase()}/${subjectCode}/${year}/${session}/${paperNumber}_${paperType}.pdf`;
+
     const metadata = {
       examBoard,
       subject,
+      subjectCode,
+      level,
       year,
       session,
       paperNumber,
+      paperType,
       ...(originalUrl && { originalUrl }),
-      scrapedAt: new Date().toISOString()
+      scrapedAt: new Date().toISOString(),
+      lastUpdated: new Date().toISOString()
     };
 
     const result = await this.r2.uploadPDF(key, pdfBuffer, metadata);
@@ -252,12 +259,14 @@ export class ScraperStorageManager {
    */
   async hasPastPaper(
     examBoard: string,
-    subject: string,
+    level: string,
+    subjectCode: string,
     year: string,
     session: string,
-    paperNumber: string
+    paperNumber: string,
+    paperType: 'qp' | 'ms' = 'qp'
   ): Promise<boolean> {
-    const key = `past-papers/${examBoard.toLowerCase()}/${subject.toLowerCase()}/${year}/${session}/${paperNumber}.pdf`;
+    const key = `past-papers/${examBoard.toLowerCase()}/${level.toLowerCase()}/${subjectCode}/${year}/${session}/${paperNumber}_${paperType}.pdf`;
     return this.r2.exists(key);
   }
 
@@ -266,13 +275,22 @@ export class ScraperStorageManager {
    */
   async getPdfUrl(
     examBoard: string,
-    subject: string,
+    level: string,
+    subjectCode: string,
     year: string,
     session: string,
     paperNumber: string,
+    paperType: 'qp' | 'ms' = 'qp',
     options: PresignedUrlOptions = {}
   ): Promise<string> {
-    const key = `past-papers/${examBoard.toLowerCase()}/${subject.toLowerCase()}/${year}/${session}/${paperNumber}.pdf`;
+    const key = `past-papers/${examBoard.toLowerCase()}/${level.toLowerCase()}/${subjectCode}/${year}/${session}/${paperNumber}_${paperType}.pdf`;
     return this.r2.getPresignedUrl(key, options);
+  }
+
+  /**
+   * Generate public URL for a stored paper
+   */
+  generatePublicUrl(key: string): string {
+    return this.r2.generatePublicUrl(key);
   }
 }

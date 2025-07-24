@@ -4,6 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -28,8 +33,14 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.826.0",
+    "@aws-sdk/s3-request-presigner": "^3.844.0",
     "@neondatabase/serverless": "^1.0.1",
+    "@types/pdf-parse": "^1.1.4",
+    "axios": "^1.7.7",
+    "cheerio": "^1.0.0",
     "dotenv": "^16.5.0",
-    "drizzle-orm": "^0.44.2"
+    "drizzle-orm": "^0.44.2",
+    "openai": "^4.73.1",
+    "zod": "^3.24.1"
   }
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "past_papers" DROP COLUMN "embedding";
