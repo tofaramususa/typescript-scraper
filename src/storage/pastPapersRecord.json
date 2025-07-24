@@ -17,7 +17,7 @@
   
   "paper_type_code": "qp",
   "paper_type_full": "Question Paper",
-  
+
   "component": "11",
   "paper_number": 1,
   "variant": 1,
@@ -103,7 +103,7 @@
     "variant-1",
     "question-paper"
   ],
-  
+
   "api_endpoints": {
     "self": "https://api.sylabl.com/v1/papers/1547",
     "download": "https://api.sylabl.com/v1/papers/1547/download",
