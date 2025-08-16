@@ -27,13 +27,11 @@ echo "${R2_ACCOUNT_ID}" | wrangler secret put R2_ACCOUNT_ID
 echo "${R2_ACCESS_KEY_ID}" | wrangler secret put R2_ACCESS_KEY_ID
 echo "${R2_SECRET_ACCESS_KEY}" | wrangler secret put R2_SECRET_ACCESS_KEY
 echo "${R2_BUCKET_NAME}" | wrangler secret put R2_BUCKET_NAME
+echo "${R2_PUBLIC_URL}" | wrangler secret put R2_PUBLIC_URL
 
 echo "Setting OpenAI API key..."
 echo "${OPENAI_API_KEY}" | wrangler secret put OPENAI_API_KEY
 
-# Create KV namespace for job status
-echo "📦 Creating KV namespace..."
-wrangler kv:namespace create "JOB_STATUS" || echo "KV namespace might already exist"
 
 # Create R2 bucket
 echo "🪣 Creating R2 bucket..."
@@ -49,8 +47,7 @@ echo "🌐 Your API is now available at:"
 echo "   https://past-papers-scraper-api.your-subdomain.workers.dev"
 echo ""
 echo "📖 API Endpoints:"
-echo "   POST /api/scrape - Start scraping job"
-echo "   GET /api/jobs/{jobId} - Check job status"
+echo "   POST /api/scrape - Scrape papers and return results"
 echo "   GET /api/health - Health check"
 echo ""
 echo "📝 Example usage:"

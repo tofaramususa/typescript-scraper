@@ -2,6 +2,21 @@ import { db } from './postgres_db';
 import { pastPapersTable } from './schema/pastPapers';
 import { eq, and, sql } from 'drizzle-orm';
 export class DatabaseService {
+    convertUrlMetadataToScraperMetadata(urlMetadata) {
+        return {
+            title: `${urlMetadata.subject} ${urlMetadata.year} ${urlMetadata.session} Paper ${urlMetadata.paperNumber}`,
+            year: parseInt(urlMetadata.year),
+            session: urlMetadata.session,
+            paperNumber: urlMetadata.paperNumber,
+            type: urlMetadata.paperType,
+            subject: urlMetadata.subject,
+            level: urlMetadata.level,
+            syllabus: urlMetadata.subjectCode,
+            originalUrl: urlMetadata.originalUrl,
+            downloadUrl: urlMetadata.originalUrl,
+            filename: `${urlMetadata.subjectCode}_${urlMetadata.paperType}_${urlMetadata.paperNumber}.pdf`,
+        };
+    }
     async insertPaper(metadata, r2Url, embedding, embeddingModel) {
         try {
             const existingPaper = await this.findPaper(metadata);
@@ -15,14 +30,14 @@ export class DatabaseService {
                 };
             }
             const baseInsertData = {
-                examBoard: metadata.examBoard,
+                examBoard: 'CAIE',
                 subject: metadata.subject,
-                subjectCode: metadata.subjectCode,
+                subjectCode: metadata.syllabus,
                 level: metadata.level,
-                year: metadata.year,
+                year: metadata.year.toString(),
                 session: metadata.session,
                 paperNumber: metadata.paperNumber,
-                paperType: metadata.paperType,
+                paperType: metadata.type,
                 r2Url: r2Url,
                 embeddingModel: embeddingModel,
             };
@@ -37,7 +52,7 @@ export class DatabaseService {
                     ...baseInsertData,
                     embedding: embedding
                 }).returning({ id: pastPapersTable.id });
-                console.log(`Inserted paper: ${metadata.subject} ${metadata.year} ${metadata.session} Paper ${metadata.paperNumber} (${metadata.paperType}) - ID: ${insertedPaper.id}`);
+                console.log(`Inserted paper: ${metadata.subject} ${metadata.year} ${metadata.session} Paper ${metadata.paperNumber} (${metadata.type}) - ID: ${insertedPaper.id}`);
                 return {
                     success: true,
                     metadata,
@@ -46,7 +61,7 @@ export class DatabaseService {
             }
             else {
                 const [insertedPaper] = await db.insert(pastPapersTable).values(baseInsertData).returning({ id: pastPapersTable.id });
-                console.log(`Inserted paper: ${metadata.subject} ${metadata.year} ${metadata.session} Paper ${metadata.paperNumber} (${metadata.paperType}) - ID: ${insertedPaper.id}`);
+                console.log(`Inserted paper: ${metadata.subject} ${metadata.year} ${metadata.session} Paper ${metadata.paperNumber} (${metadata.type}) - ID: ${insertedPaper.id}`);
                 return {
                     success: true,
                     metadata,
@@ -92,7 +107,7 @@ export class DatabaseService {
         try {
             const [paper] = await db.select()
                 .from(pastPapersTable)
-                .where(and(eq(pastPapersTable.examBoard, metadata.examBoard), eq(pastPapersTable.subjectCode, metadata.subjectCode), eq(pastPapersTable.level, metadata.level), eq(pastPapersTable.year, metadata.year), eq(pastPapersTable.session, metadata.session), eq(pastPapersTable.paperNumber, metadata.paperNumber), eq(pastPapersTable.paperType, metadata.paperType)))
+                .where(and(eq(pastPapersTable.examBoard, 'CAIE'), eq(pastPapersTable.subjectCode, metadata.syllabus), eq(pastPapersTable.level, metadata.level), eq(pastPapersTable.year, metadata.year.toString()), eq(pastPapersTable.session, metadata.session), eq(pastPapersTable.paperNumber, metadata.paperNumber), eq(pastPapersTable.paperType, metadata.type)))
                 .limit(1);
             return paper || null;
         }
@@ -106,7 +121,7 @@ export class DatabaseService {
         const embeddingMap = new Map();
         if (embeddingResults) {
             for (const embeddingResult of embeddingResults) {
-                const key = this.createMetadataKey(embeddingResult.metadata);
+                const key = this.createMetadataKey(this.convertUrlMetadataToScraperMetadata(embeddingResult.metadata));
                 embeddingMap.set(key, embeddingResult);
             }
         }
@@ -142,7 +157,7 @@ export class DatabaseService {
                 });
                 continue;
             }
-            const existingPaper = await this.findPaper(embeddingResult.metadata);
+            const existingPaper = await this.findPaper(this.convertUrlMetadataToScraperMetadata(embeddingResult.metadata));
             if (!existingPaper) {
                 results.push({
                     success: false,
@@ -259,8 +274,20 @@ export class DatabaseService {
             return [];
         }
     }
+    async deletePaper(paperId) {
+        try {
+            await db.delete(pastPapersTable)
+                .where(eq(pastPapersTable.id, paperId));
+            console.log(`Deleted paper ID: ${paperId}`);
+            return true;
+        }
+        catch (error) {
+            console.error(`Failed to delete paper ID ${paperId}:`, error instanceof Error ? error.message : 'Unknown error');
+            return false;
+        }
+    }
     createMetadataKey(metadata) {
-        return `${metadata.examBoard}-${metadata.level}-${metadata.subjectCode}-${metadata.year}-${metadata.session}-${metadata.paperNumber}-${metadata.paperType}`;
+        return `CAIE-${metadata.level}-${metadata.syllabus}-${metadata.year}-${metadata.session}-${metadata.paperNumber}-${metadata.type}`;
     }
 }
 //# sourceMappingURL=database-service.js.map

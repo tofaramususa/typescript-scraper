@@ -1,73 +1,114 @@
-# Overview
+# CLAUDE.md
 
-You are an expert in TypeScript and Node.js development. You are also an expert with common libraries and frameworks used in the industry. You are thoughtful, give nuanced answers, and are brilliant at reasoning. You carefully provide accurate, factual, thoughtful answers, and are a genius at reasoning.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-- Follow the user's requirements carefully & to the letter.
-- First think step-by-step - describe your plan for what to build in pseudocode, written out in great detail.
+## Project Overview
 
-## Tech Stack
+This is a TypeScript-based scraper that extracts past papers from pastpapers.co and papacambridge.com, stores PDFs in Cloudflare R2, generates AI embeddings using OpenAI, and stores metadata in PostgreSQL. The project has two deployment targets: a Node.js CLI application and a Cloudflare Workers API.
 
-The application we are working on uses the following tech stack:
+## Key Commands
 
-- TypeScript
-- Node.js
+### Development
+- `npm run dev <url>` - Run the CLI scraper with a target URL
+- `npm run build` - Build TypeScript to JavaScript (dist/)
+- `npm start` - Run the built CLI application
 
-## TypeScript General Guidelines
+### Database Operations  
+- `npm run db:generate` - Generate database schema with Drizzle Kit
+- `npm run db:migrate` - Apply database migrations
 
-## Core Principles
+### Cloudflare Workers
+- `npm run worker:dev` - Start local development server for the Workers API
+- `npm run worker:deploy` - Deploy the Workers API to Cloudflare
+- `npm run worker:tail` - View live logs from deployed worker
 
-- Write straightforward, readable, and maintainable code
-- Follow SOLID principles and design patterns
-- Use strong typing and avoid 'any'
-- Restate what the objective is of what you are being asked to change clearly in a short summary.
-- Utilize Lodash, 'Promise.all()', and other standard techniques to optimize performance when working with large datasets
+### Quick Testing
+- `npx tsx quick-test.ts` - Run quick tests
+- `npx tsx src/index.ts <url>` - Direct TypeScript execution
 
-## Coding Standards
+## Architecture
 
-### Naming Conventions
+### Dual Runtime Architecture
+The codebase supports two runtime environments:
+1. **Node.js CLI** (`src/index.ts`) - Full-featured scraper with local file operations
+2. **Cloudflare Workers API** (`worker/index.ts`) - Serverless HTTP API with background processing
 
+### Core Components
+
+**Scrapers**
+- `src/downloaders/papacambridge-scraper.ts` - Web scraping logic for discovering papers
+- `src/worker/scraper-worker.ts` - Workers-compatible scraper implementation
+
+**Storage Services**
+- `src/storage/pdf-storage-service.ts` - Node.js PDF download and R2 upload
+- `src/storage/database-service.ts` - Node.js PostgreSQL operations  
+- `src/worker/r2-service-worker.ts` - Workers-compatible R2 storage
+- `src/worker/database-service-worker.ts` - Workers-compatible database operations
+
+**AI/Embeddings**
+- `src/embeddings/generateEmbeddings.ts` - Node.js OpenAI integration
+- `src/worker/embedding-service-worker.ts` - Workers-compatible embeddings
+
+**Utilities**
+- `src/utils/url-parser.ts` - Extract metadata from PDF URLs
+- `src/utils/progress-tracker.ts` - Resume capability for interrupted scrapes
+- `src/utils/simple-logger.ts` - Logging with metrics
+- `src/utils/pdf-cache.ts` - In-memory PDF caching
+
+### Database Schema
+Located in `src/storage/schema/pastPapers.ts` using Drizzle ORM. Key fields include paper metadata (subject, year, session, paper type) and embeddings for AI search.
+
+## Environment Configuration
+
+Required environment variables:
+- `DATABASE_URL` - PostgreSQL connection string
+- `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME` - Cloudflare R2 credentials
+- `OPENAI_API_KEY` - For generating embeddings
+
+For Workers deployment, set secrets using:
+```bash
+wrangler secret put <SECRET_NAME>
+```
+
+## URL Parser Logic
+The `url-parser.ts` extracts structured metadata from URLs like:
+`https://pastpapers.co/cie/IGCSE/Mathematics-0580/2024-March/0580_m24_ms_42.pdf`
+
+Extracts: exam board (cie), level (IGCSE), subject code (0580), year (2024), session (March), paper number (42), type (ms=mark scheme, qp=question paper).
+
+## Code Conventions
+
+**Type Safety**
+- Prefer Zod schemas with inferred types over manual interfaces
+- Use `import type` for type-only imports
+- Avoid `any` - use proper typing
+
+**File Organization**
 - Classes: PascalCase
-- Variables, functions, methods: camelCase
-- Files, directories: kebab-case
-- Constants, env variables: UPPERCASE
+- Files/directories: kebab-case  
+- Variables/functions: camelCase
+- Constants/env vars: UPPERCASE
 
-### Functions
+**Error Handling**
+- Use comprehensive try-catch blocks
+- Log errors with context using the logger utility
+- Implement retry logic for network operations
+- Graceful degradation for optional features like embeddings
 
-- Use descriptive names: verbs & nouns (e.g., getUserData)
-- Prefer arrow functions for simple operations
-- Use default parameters and object destructuring
-- Document with JSDoc
+**Performance**
+- Use `Promise.all()` for parallel operations where possible
+- Implement rate limiting (2s delay between requests)
+- Cache frequently accessed data
+- Sequential processing in Workers to avoid subrequest limits
 
-### Types and Interfaces
+## Workers-Specific Considerations
 
-- For any new types, prefer to create a Zod schema, and zod inference type for the created schema.
-- Create custom types/interfaces for complex structures
-- Use 'readonly' for immutable properties
-- If an import is only used as a type in the file, use 'import type' instead of 'import'
+- Maximum 50 subrequests per invocation
+- Process PDFs sequentially, not in parallel
+- Use background processing with `ctx.waitUntil()`
+- Implement proper CORS headers for API access
+- R2 binding configured as `PAPERS_BUCKET`
 
-## Code Review Checklist
+## Testing & Development
 
-- Ensure proper typing
-- Check for code duplication
-- Verify error handling
-- Confirm test coverage
-- Review naming conventions
-- Assess overall code structure and readability
-
-## Documentation
-
-- When writing documentation, README's, technical writing, technical documentation, JSDocs or comments, always follow Google's Technical Writing Style Guide.
-- Define terminology when needed
-- Use the active voice
-- Use the present tense
-- Write in a clear and concise manner
-- Present information in a logical order
-- Use lists and tables when appropriate
-- When writing JSDocs, only use TypeDoc compatible tags.
-- Always write JSDocs for all code: classes, functions, methods, fields, types, interfaces.
-
-## Git Commit Rules
-- Make the head / title of the commit message brief
-- Include elaborate details in the body of the commit message
-- Always follow the conventional commit message format
-- Add two newlines after the commit message title
+The scraper includes comprehensive logging and progress tracking. Use the quick-test script for rapid iteration. The application supports resume capability - interrupted scrapes can continue from where they left off using the progress tracker.

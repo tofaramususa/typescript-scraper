@@ -12,10 +12,9 @@ export interface Env {
   R2_ACCESS_KEY_ID: string;
   R2_SECRET_ACCESS_KEY: string;
   R2_BUCKET_NAME: string;
+  R2_PUBLIC_URL?: string; // Optional - only needed for public PDF access
   OPENAI_API_KEY: string;
-  PAPERS_BUCKET: R2Bucket;
-  // SCRAPER_QUEUE: Queue; // Disabled for free plan
-  JOB_STATUS: KVNamespace;
+  PAPERS_BUCKET: any; // R2Bucket type from @cloudflare/workers-types
 }
 
 // Zod schema for paper metadata (Workers-compatible)
@@ -164,9 +163,8 @@ export class WorkersPapaCambridgeScraper {
     // Simple HTML parsing for Workers (no cheerio)
     const yearUrls: string[] = [];
     
-    // Match href attributes that contain year patterns
+    // Match href attributes that contain year patterns - updated regex for PapaCambridge format
     const hrefRegex = /href=["']([^"']*?)["']/gi;
-    const textRegex = />([^<]*?(\d{4})-(may-june|oct-nov|march|feb-mar)[^<]*?)</gi;
     
     let match;
     const potentialUrls: string[] = [];
@@ -176,13 +174,17 @@ export class WorkersPapaCambridgeScraper {
       potentialUrls.push(match[1]);
     }
     
-    // Find URLs that match year patterns
+    // Find URLs that match year patterns - updated patterns to match actual HTML
     for (const href of potentialUrls) {
-      if (href.match(/(\d{4})-(may-june|oct-nov|march|feb-mar)/i)) {
+      // Match patterns like: papers/caie/igcse-mathematics-0580-2024-oct-nov
+      if (href.match(/papers\/caie\/igcse-mathematics-\d+-(\d{4})-(may-june|oct-nov|march|feb-mar)/i)) {
         const fullUrl = href.startsWith('http') ? href : `https://pastpapers.papacambridge.com/${href}`;
         yearUrls.push(fullUrl);
       }
     }
+
+    console.log(`🔍 Found potential URLs: ${potentialUrls.length}`);
+    console.log(`📅 Found year URLs: ${yearUrls.length}`, yearUrls);
 
     return [...new Set(yearUrls)];
   }
@@ -330,6 +332,7 @@ export class WorkersPapaCambridgeScraper {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           },
+          signal: AbortSignal.timeout(30000), // 30 second timeout
         });
         
         if (response.ok) {

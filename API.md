@@ -10,11 +10,11 @@ https://past-papers-scraper-api.your-subdomain.workers.dev
 
 ## Endpoints
 
-### 1. Start Scraping Job
+### 1. Scrape Papers
 
 **POST** `/api/scrape`
 
-Start a background job to scrape papers from a PapaCambridge URL.
+Scrape papers from a PapaCambridge URL and return results directly.
 
 #### Request Body
 
@@ -41,67 +41,17 @@ Start a background job to scrape papers from a PapaCambridge URL.
 ```json
 {
   "success": true,
-  "jobId": "job_1672531200000_abc123def",
-  "status": "queued",
-  "message": "Scraping job queued successfully",
-  "statusUrl": "/api/jobs/job_1672531200000_abc123def"
+  "totalPapers": 500,
+  "successfulDownloads": 485,
+  "failedDownloads": 15,
+  "skippedDuplicates": 12,
+  "embeddingsGenerated": 485,
+  "databaseRecords": 485,
+  "processingTime": 3600000
 }
 ```
 
-### 2. Check Job Status
-
-**GET** `/api/jobs/{jobId}`
-
-Check the status of a scraping job.
-
-#### Response
-
-```json
-{
-  "jobId": "job_1672531200000_abc123def",
-  "status": "processing",
-  "progress": {
-    "currentStep": "downloading-pdfs",
-    "processed": 150,
-    "total": 500,
-    "percentage": 30
-  },
-  "createdAt": "2024-01-01T12:00:00.000Z",
-  "updatedAt": "2024-01-01T12:05:00.000Z"
-}
-```
-
-#### Status Values
-
-- `queued`: Job is waiting to be processed
-- `processing`: Job is currently running
-- `completed`: Job finished successfully
-- `failed`: Job encountered an error
-
-#### Completed Job Response
-
-```json
-{
-  "jobId": "job_1672531200000_abc123def",
-  "status": "completed",
-  "progress": {
-    "currentStep": "completed",
-    "processed": 500,
-    "total": 500,
-    "percentage": 100
-  },
-  "result": {
-    "totalPapers": 500,
-    "successfulDownloads": 485,
-    "failedDownloads": 15,
-    "processingTime": 3600000
-  },
-  "createdAt": "2024-01-01T12:00:00.000Z",
-  "updatedAt": "2024-01-01T13:00:00.000Z"
-}
-```
-
-### 3. Health Check
+### 2. Health Check
 
 **GET** `/api/health`
 
@@ -117,7 +67,7 @@ Check if the API is running.
 }
 ```
 
-### 4. API Documentation
+### 3. API Documentation
 
 **GET** `/`
 
@@ -128,7 +78,7 @@ Returns this API documentation in JSON format.
 ### curl
 
 ```bash
-# Start a scraping job
+# Scrape papers
 curl -X POST https://your-worker.workers.dev/api/scrape \
   -H "Content-Type: application/json" \
   -d '{
@@ -138,15 +88,12 @@ curl -X POST https://your-worker.workers.dev/api/scrape \
       "endYear": 2020
     }
   }'
-
-# Check job status
-curl https://your-worker.workers.dev/api/jobs/job_1672531200000_abc123def
 ```
 
 ### JavaScript/Fetch
 
 ```javascript
-// Start scraping job
+// Scrape papers
 const response = await fetch('https://your-worker.workers.dev/api/scrape', {
   method: 'POST',
   headers: {
@@ -162,35 +109,21 @@ const response = await fetch('https://your-worker.workers.dev/api/scrape', {
   })
 });
 
-const job = await response.json();
-console.log('Job ID:', job.jobId);
-
-// Poll for job completion
-const checkStatus = async (jobId) => {
-  const statusResponse = await fetch(`https://your-worker.workers.dev/api/jobs/${jobId}`);
-  const status = await statusResponse.json();
-  
-  if (status.status === 'completed') {
-    console.log('Job completed:', status.result);
-  } else if (status.status === 'failed') {
-    console.error('Job failed:', status.error);
-  } else {
-    console.log('Progress:', status.progress);
-    // Check again in 30 seconds
-    setTimeout(() => checkStatus(jobId), 30000);
-  }
-};
-
-checkStatus(job.jobId);
+const result = await response.json();
+if (result.success) {
+  console.log('Scraping completed:', result);
+  console.log(`Downloaded ${result.successfulDownloads} papers`);
+} else {
+  console.error('Scraping failed:', result.error);
+}
 ```
 
 ### Python
 
 ```python
 import requests
-import time
 
-# Start scraping job
+# Scrape papers
 response = requests.post('https://your-worker.workers.dev/api/scrape', json={
     'url': 'https://pastpapers.papacambridge.com/papers/caie/igcse-mathematics-0580',
     'config': {
@@ -200,24 +133,12 @@ response = requests.post('https://your-worker.workers.dev/api/scrape', json={
     }
 })
 
-job = response.json()
-job_id = job['jobId']
-print(f"Started job: {job_id}")
-
-# Poll for completion
-while True:
-    status_response = requests.get(f'https://your-worker.workers.dev/api/jobs/{job_id}')
-    status = status_response.json()
-    
-    if status['status'] == 'completed':
-        print("Job completed:", status['result'])
-        break
-    elif status['status'] == 'failed':
-        print("Job failed:", status.get('error'))
-        break
-    else:
-        print(f"Progress: {status['progress']['percentage']}%")
-        time.sleep(30)
+result = response.json()
+if result['success']:
+    print("Scraping completed:", result)
+    print(f"Downloaded {result['successfulDownloads']} papers")
+else:
+    print("Scraping failed:", result.get('error'))
 ```
 
 ## Error Handling
@@ -225,7 +146,6 @@ while True:
 All endpoints return appropriate HTTP status codes:
 
 - `200`: Success
-- `202`: Accepted (for async operations)
 - `400`: Bad Request (validation errors)
 - `404`: Not Found
 - `500`: Internal Server Error
@@ -243,15 +163,13 @@ Error responses follow this format:
 ## Rate Limits
 
 The API implements rate limiting to be respectful to PapaCambridge:
-- 2-second delays between requests
+- 500ms delays between requests
 - Maximum 3 retry attempts
-- Concurrent job limit (handled by Cloudflare Queues)
 
 ## Data Storage
 
 - **PDFs**: Stored in Cloudflare R2 with organized paths
 - **Metadata**: Stored in PostgreSQL (Neon) with full-text search
-- **Job Status**: Tracked in Cloudflare KV
 - **Embeddings**: Generated using OpenAI API for semantic search
 
 ## Supported URLs

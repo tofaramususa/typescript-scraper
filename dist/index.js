@@ -1,6 +1,5 @@
 import { config } from 'dotenv';
-import axios from 'axios';
-import { PastPapersScraper } from './downloaders/pastpapers-co-scraper';
+import { PapaCambridgeScraper } from './downloaders/papacambridge-scraper';
 import { PdfStorageService } from './storage/pdf-storage-service';
 import { EmbeddingsService } from './embeddings/generateEmbeddings';
 import { DatabaseService } from './storage/database-service';
@@ -16,7 +15,6 @@ class PastPapersScraperApp {
     embeddings;
     database;
     config;
-    axiosInstance;
     progressTracker;
     pdfCache;
     constructor(config = {}) {
@@ -29,11 +27,10 @@ class PastPapersScraperApp {
             ...config,
         };
         this.validateEnvironment();
-        this.scraper = new PastPapersScraper({
+        this.scraper = new PapaCambridgeScraper({
             startYear: this.config.startYear,
             endYear: this.config.endYear,
-            useBrowserless: true,
-            delayMs: 3000,
+            delayMs: 2000,
         });
         const r2Client = createR2Client();
         this.pdfStorage = new PdfStorageService(r2Client, {
@@ -43,13 +40,6 @@ class PastPapersScraperApp {
             batchSize: 10,
         });
         this.database = new DatabaseService();
-        this.axiosInstance = axios.create({
-            timeout: 60000,
-            maxContentLength: 50 * 1024 * 1024,
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            },
-        });
         this.pdfCache = new PdfCache();
     }
     async run(subjectUrl) {
@@ -73,7 +63,7 @@ class PastPapersScraperApp {
                 }
                 this.progressTracker.setTotal(scrapedPapers.length);
                 this.progressTracker.completeStep('scraping-urls');
-                const unprocessedPapers = this.progressTracker.getUnprocessed(scrapedPapers);
+                const unprocessedPapers = this.progressTracker ? this.progressTracker.getUnprocessed(scrapedPapers) : scrapedPapers;
                 logger.info(`✅ Found ${scrapedPapers.length} papers total, ${unprocessedPapers.length} to process`);
                 if (unprocessedPapers.length === 0) {
                     logger.info('🎉 All papers already processed!');
@@ -110,8 +100,18 @@ class PastPapersScraperApp {
                     const successfullyStored = storageResults.filter(r => r.success && !r.skipped);
                     if (successfullyStored.length > 0) {
                         const metadataForEmbeddings = successfullyStored.map(result => ({
-                            metadata: result.metadata
-                        }));
+                            metadata: {
+                                examBoard: 'CAIE',
+                                level: result.metadata.level,
+                                subject: result.metadata.subject,
+                                subjectCode: result.metadata.syllabus,
+                                year: result.metadata.year.toString(),
+                                session: result.metadata.session,
+                                paperNumber: result.metadata.paperNumber,
+                                paperType: result.metadata.type,
+                                originalUrl: result.metadata.originalUrl,
+                            }
+                        })).filter(item => item.metadata.paperType === 'qp' || item.metadata.paperType === 'ms');
                         embeddingResults = await withMetrics('generate-embeddings', () => this.embeddings.batchGenerateEmbeddings(metadataForEmbeddings, {
                             onProgress: (completed, total) => {
                                 const percent = Math.round((completed / total) * 100);
@@ -174,20 +174,86 @@ class PastPapersScraperApp {
         }
     }
 }
-async function main() {
-    const args = process.argv.slice(2);
+function parseCliArgs(args) {
     if (args.length === 0) {
-        console.log('Usage: npm run dev <pastpapers-url>');
-        console.log('Example: npm run dev "https://pastpapers.co/cie/?dir=IGCSE/Mathematics-0580"');
+        console.log('Usage: npm run dev <papacambridge-url> [options]');
+        console.log('');
+        console.log('Options:');
+        console.log('  --start-year <year>    Most recent year to scrape (default: 2024)');
+        console.log('  --end-year <year>      Earliest year to scrape (default: 2014)');
+        console.log('  --no-embeddings        Skip generating AI embeddings');
+        console.log('  --concurrency <num>    Number of concurrent downloads (default: 5)');
+        console.log('');
+        console.log('Examples:');
+        console.log('  npm run dev "https://pastpapers.papacambridge.com/papers/caie/igcse-mathematics-0580"');
+        console.log('  npm run dev "https://pastpapers.papacambridge.com/papers/caie/igcse-mathematics-0580" --start-year 2023 --end-year 2020');
+        console.log('  npm run dev "https://pastpapers.papacambridge.com/papers/caie/igcse-mathematics-0580" --start-year 2022 --end-year 2022 --no-embeddings');
         process.exit(1);
     }
-    const subjectUrl = args[0];
+    const url = args[0];
+    const config = {};
+    for (let i = 1; i < args.length; i++) {
+        const arg = args[i];
+        switch (arg) {
+            case '--start-year':
+                const startYear = parseInt(args[i + 1]);
+                if (isNaN(startYear) || startYear < 2000 || startYear > 2030) {
+                    throw new Error('Invalid start year. Must be between 2000 and 2030');
+                }
+                config.startYear = startYear;
+                i++;
+                break;
+            case '--end-year':
+                const endYear = parseInt(args[i + 1]);
+                if (isNaN(endYear) || endYear < 2000 || endYear > 2030) {
+                    throw new Error('Invalid end year. Must be between 2000 and 2030');
+                }
+                config.endYear = endYear;
+                i++;
+                break;
+            case '--no-embeddings':
+                config.generateEmbeddings = false;
+                break;
+            case '--concurrency':
+                const concurrency = parseInt(args[i + 1]);
+                if (isNaN(concurrency) || concurrency < 1 || concurrency > 20) {
+                    throw new Error('Invalid concurrency. Must be between 1 and 20');
+                }
+                config.concurrency = concurrency;
+                i++;
+                break;
+            default:
+                if (arg.startsWith('--')) {
+                    throw new Error(`Unknown option: ${arg}`);
+                }
+                break;
+        }
+    }
+    if (config.startYear && config.endYear && config.startYear < config.endYear) {
+        throw new Error('Start year must be greater than or equal to end year');
+    }
+    return { url, ...config };
+}
+async function main() {
+    const args = process.argv.slice(2);
     try {
-        const app = new PastPapersScraperApp({});
-        await app.run(subjectUrl);
+        const { url, ...config } = parseCliArgs(args);
+        console.log('🔧 Scraper Configuration:');
+        console.log(`   📚 URL: ${url}`);
+        if (config.startYear)
+            console.log(`   📅 Start Year: ${config.startYear}`);
+        if (config.endYear)
+            console.log(`   📅 End Year: ${config.endYear}`);
+        if (config.generateEmbeddings !== undefined)
+            console.log(`   🧠 Generate Embeddings: ${config.generateEmbeddings}`);
+        if (config.concurrency)
+            console.log(`   🔄 Concurrency: ${config.concurrency}`);
+        console.log('');
+        const app = new PastPapersScraperApp(config);
+        await app.run(url);
     }
     catch (error) {
-        console.error('Application failed:', error instanceof Error ? error.message : 'Unknown error');
+        console.error('❌ Application failed:', error instanceof Error ? error.message : 'Unknown error');
         process.exit(1);
     }
 }

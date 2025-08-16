@@ -1,4 +1,4 @@
-export declare const paperTypeEnum: import("drizzle-orm/pg-core").PgEnum<["qp", "ms"]>;
+export declare const paperTypeEnum: import("drizzle-orm/pg-core").PgEnum<["qp", "ms", "gt", "er", "ci"]>;
 export declare const pastPapersTable: import("drizzle-orm/pg-core").PgTableWithColumns<{
     name: "past_papers";
     schema: undefined;
@@ -144,14 +144,14 @@ export declare const pastPapersTable: import("drizzle-orm/pg-core").PgTableWithC
             tableName: "past_papers";
             dataType: "string";
             columnType: "PgEnumColumn";
-            data: "qp" | "ms";
+            data: "qp" | "ms" | "gt" | "er" | "ci";
             driverParam: string;
             notNull: true;
             hasDefault: true;
             isPrimaryKey: false;
             isAutoincrement: false;
             hasRuntimeDefault: false;
-            enumValues: ["qp", "ms"];
+            enumValues: ["qp", "ms", "gt", "er", "ci"];
             baseColumn: never;
             identity: undefined;
             generated: undefined;

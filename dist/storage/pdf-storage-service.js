@@ -1,19 +1,15 @@
 import axios from 'axios';
 import { ScraperStorageManager } from './r2_client_service';
-import { BrowserlessClient } from '../services/browserless-client';
-import { withRetry } from '../utils/error-handler';
 export class PdfStorageService {
     config;
     axiosInstance;
     storageManager;
-    browserlessClient;
     constructor(r2Client, config = {}) {
         this.config = {
             maxRetries: 3,
             timeoutMs: 60000,
             maxFileSizeMB: 50,
             concurrency: 5,
-            useBrowserless: false,
             ...config,
         };
         this.axiosInstance = axios.create({
@@ -24,15 +20,12 @@ export class PdfStorageService {
             },
         });
         this.storageManager = new ScraperStorageManager(r2Client);
-        if (this.config.useBrowserless) {
-            this.browserlessClient = new BrowserlessClient();
-        }
     }
     async storePdf(downloadUrl, metadata, options = {}) {
         const { skipIfExists = true } = options;
         try {
             if (skipIfExists) {
-                const exists = await this.storageManager.hasPastPaper(metadata.examBoard, metadata.level, metadata.subjectCode, metadata.year, metadata.session, metadata.paperNumber, metadata.paperType);
+                const exists = await this.storageManager.hasPastPaper('Cambridge', metadata.level, metadata.syllabus, metadata.year.toString(), metadata.session, metadata.paperNumber, metadata.type);
                 if (exists) {
                     return {
                         success: true,
@@ -50,9 +43,9 @@ export class PdfStorageService {
             if (sizeMB > this.config.maxFileSizeMB) {
                 throw new Error(`PDF too large: ${sizeMB.toFixed(2)}MB (max ${this.config.maxFileSizeMB}MB)`);
             }
-            const r2Key = await this.storageManager.storePastPaper(metadata.examBoard, metadata.subject, metadata.subjectCode, metadata.level, metadata.year, metadata.session, metadata.paperNumber, pdfBuffer, metadata.paperType, metadata.originalUrl);
+            const r2Key = await this.storageManager.storePastPaper('Cambridge', metadata.subject, metadata.syllabus, metadata.level, metadata.year.toString(), metadata.session, metadata.paperNumber, pdfBuffer, metadata.type, metadata.originalUrl);
             const r2Url = this.storageManager.generatePublicUrl(r2Key);
-            console.log(`Successfully stored: ${metadata.subject} ${metadata.year} ${metadata.session} Paper ${metadata.paperNumber} (${metadata.paperType})`);
+            console.log(`Successfully stored: ${metadata.subject} ${metadata.year} ${metadata.session} Paper ${metadata.paperNumber} (${metadata.type})`);
             return {
                 success: true,
                 metadata,
@@ -95,17 +88,7 @@ export class PdfStorageService {
         return results;
     }
     async downloadPdfWithRetry(url) {
-        if (this.config.useBrowserless && this.browserlessClient) {
-            try {
-                console.log(`📥 Downloading PDF via Browserless: ${url}`);
-                return await this.browserlessClient.downloadFile(url);
-            }
-            catch (error) {
-                console.log(`🔄 Browserless download failed, falling back to direct HTTP: ${url}`);
-                console.log(`   Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-            }
-        }
-        return withRetry(async () => {
+        return this.retryOperation(async () => {
             console.log(`📥 Downloading PDF via HTTP: ${url}`);
             const headResponse = await this.axiosInstance.head(url);
             const contentLength = parseInt(headResponse.headers['content-length'] || '0');
@@ -123,7 +106,7 @@ export class PdfStorageService {
                 }
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-        }, this.config.maxRetries, 1000, `download-${url}`);
+        });
     }
     async downloadWithStream(url) {
         const response = await this.axiosInstance.get(url, {
@@ -190,6 +173,23 @@ export class PdfStorageService {
                 console.warn(`Failed to cleanup ${result.r2Key}:`, error instanceof Error ? error.message : 'Unknown error');
             }
         }
+    }
+    async retryOperation(operation) {
+        let lastError;
+        for (let attempt = 1; attempt <= this.config.maxRetries; attempt++) {
+            try {
+                return await operation();
+            }
+            catch (error) {
+                lastError = error instanceof Error ? error : new Error('Unknown error');
+                if (attempt < this.config.maxRetries) {
+                    const delay = attempt * 1000;
+                    console.log(`⏳ Attempt ${attempt} failed, retrying in ${delay}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+        throw lastError;
     }
 }
 //# sourceMappingURL=pdf-storage-service.js.map

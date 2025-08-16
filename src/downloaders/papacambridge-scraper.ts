@@ -173,13 +173,20 @@ export class PapaCambridgeScraper {
     const yearUrls: string[] = [];
 
     // Look for links that contain year patterns
+    const allTexts: string[] = []; // Debug: collect all link texts
     $('a[href]').each((_, element) => {
       const href = $(element).attr('href');
       const text = $(element).text().trim();
       
       if (href && text) {
+        allTexts.push(text); // Debug: collect all texts
+        
         // Match patterns like "2024-May-June", "2023-Oct-Nov", "2025-March", etc.
-        const yearMatch = text.match(/(\d{4})-(may-june|oct-nov|march|feb-mar)/i);
+        // Also match simple year patterns like "2014", "2015" for older papers
+        // More permissive pattern to catch different formats
+        const yearMatch = text.match(/(20[0-3]\d|19[89]\d)(?:[-\s]*(may-june|oct-nov|march|feb-mar|june|nov))?/i) ||
+                          text.match(/^(20[0-3]\d|19[89]\d)$/); // Just year by itself
+        
         if (yearMatch) {
           // Build correct URL - the href is relative like "papers/caie/igcse-mathematics-0580-2024-may-june"
           let fullUrl;
@@ -195,6 +202,9 @@ export class PapaCambridgeScraper {
       }
     });
 
+    // Debug: log some sample texts to see what's available
+    console.log('📋 Sample link texts found:', allTexts.slice(0, 20).join(', '));
+
     return [...new Set(yearUrls)]; // Remove duplicates
   }
 
@@ -205,15 +215,21 @@ export class PapaCambridgeScraper {
     year: number;
     session: string;
   } {
-    // Extract from URL patterns like "2024-may-june", "2023-oct-nov", or "2025-march"
-    const match = url.match(/(\d{4})-(may-june|oct-nov|march|feb-mar)/i);
+    // Extract from URL patterns like "2024-may-june", "2023-oct-nov", "2025-march", or just "2014"
+    // More permissive matching for different URL formats
+    const match = url.match(/(19[89]\d|20[0-3]\d)(?:[-\s]*(may-june|oct-nov|march|feb-mar|june|nov))?/i);
     if (!match) {
       throw new Error(`Could not parse year from URL: ${url}`);
     }
 
+    const year = parseInt(match[1]);
+    if (year < 1980 || year > 2030) {
+      throw new Error(`Invalid year ${year} parsed from URL: ${url}`);
+    }
+
     return {
-      year: parseInt(match[1]),
-      session: match[2].toLowerCase(),
+      year: year,
+      session: match[2] ? match[2].toLowerCase() : 'annual', // Default to 'annual' for simple year folders
     };
   }
 

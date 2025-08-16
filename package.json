@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx src/index.ts",
+    "scrape": "tsx src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "db:generate": "drizzle-kit generate",

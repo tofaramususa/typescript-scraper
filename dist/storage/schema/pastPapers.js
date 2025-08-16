@@ -1,6 +1,6 @@
 import { pgEnum, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
 import { vector } from 'drizzle-orm/pg-core';
-export const paperTypeEnum = pgEnum('paper_type', ['qp', 'ms']);
+export const paperTypeEnum = pgEnum('paper_type', ['qp', 'ms', 'gt', 'er', 'ci']);
 export const pastPapersTable = pgTable('past_papers', {
     id: serial('id').primaryKey(),
     examBoard: text('exam_board').notNull(),

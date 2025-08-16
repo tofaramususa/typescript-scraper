@@ -10,25 +10,25 @@ export declare const PaperMetadataSchema: z.ZodObject<{
     paperType: z.ZodEnum<["qp", "ms"]>;
     originalUrl: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    examBoard: string;
-    level: string;
-    subject: string;
-    subjectCode: string;
     year: string;
     session: string;
     paperNumber: string;
-    paperType: "qp" | "ms";
+    subject: string;
+    level: string;
     originalUrl: string;
+    examBoard: string;
+    subjectCode: string;
+    paperType: "qp" | "ms";
 }, {
-    examBoard: string;
-    level: string;
-    subject: string;
-    subjectCode: string;
     year: string;
     session: string;
     paperNumber: string;
-    paperType: "qp" | "ms";
+    subject: string;
+    level: string;
     originalUrl: string;
+    examBoard: string;
+    subjectCode: string;
+    paperType: "qp" | "ms";
 }>;
 export type PaperMetadata = z.infer<typeof PaperMetadataSchema>;
 export declare function parsePaperUrl(pdfUrl: string): PaperMetadata;

@@ -1,10 +1,10 @@
 // Quick test to verify scraper works with the new logic
-import { PastPapersScraper } from './src/downloaders/pastpapers-co-scraper';
+import { PapaCambridgeScraper } from './src/downloaders/papacambridge-scraper';
 
 async function quickTest() {
   console.log('🧪 Quick test of the improved scraper...');
   
-  const scraper = new PastPapersScraper({
+  const scraper = new PapaCambridgeScraper({
     startYear: 2024,
     endYear: 2023, // Just test 2 years to be quick
     maxRetries: 2,
@@ -12,7 +12,7 @@ async function quickTest() {
   });
 
   try {
-    const testUrl = 'https://pastpapers.co/cie/?dir=IGCSE/Mathematics-0580';
+    const testUrl = 'https://pastpapers.papacambridge.com/papers/caie/igcse-mathematics-0580';
     console.log(`\n🔗 Testing with URL: ${testUrl}`);
     
     const papers = await scraper.scrapePapers(testUrl);
@@ -23,8 +23,8 @@ async function quickTest() {
     if (papers.length > 0) {
       console.log('\n📄 Sample papers:');
       papers.slice(0, 3).forEach((paper, index) => {
-        const { subject, year, session, paperNumber, paperType } = paper.metadata;
-        console.log(`${index + 1}. ${subject} ${year} ${session} Paper ${paperNumber} (${paperType})`);
+        const { subject, year, session, paperNumber, type } = paper.metadata;
+        console.log(`${index + 1}. ${subject} ${year} ${session} Paper ${paperNumber} (${type})`);
         console.log(`   📥 Download URL: ${paper.downloadUrl}`);
       });
       

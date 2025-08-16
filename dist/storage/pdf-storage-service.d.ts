@@ -1,11 +1,10 @@
 import { R2StorageClient } from './r2_client_service';
-import type { PaperMetadata } from '../utils/url-parser';
+import type { PaperMetadata } from '../downloaders/papacambridge-scraper';
 interface PdfStorageConfig {
     maxRetries: number;
     timeoutMs: number;
     maxFileSizeMB: number;
     concurrency: number;
-    useBrowserless: boolean;
 }
 export interface StorageResult {
     success: boolean;
@@ -20,7 +19,6 @@ export declare class PdfStorageService {
     private config;
     private axiosInstance;
     private storageManager;
-    private browserlessClient?;
     constructor(r2Client: R2StorageClient, config?: Partial<PdfStorageConfig>);
     storePdf(downloadUrl: string, metadata: PaperMetadata, options?: {
         skipIfExists?: boolean;
@@ -45,6 +43,7 @@ export declare class PdfStorageService {
         errors: string[];
     };
     cleanup(results: StorageResult[]): Promise<void>;
+    private retryOperation;
 }
 export {};
 //# sourceMappingURL=pdf-storage-service.d.ts.map

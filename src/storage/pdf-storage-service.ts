@@ -72,13 +72,13 @@ export class PdfStorageService {
       // Check if paper already exists in storage
       if (skipIfExists) {
         const exists = await this.storageManager.hasPastPaper(
-          metadata.examBoard,
+          'Cambridge', // Default exam board for PapaCambridge
           metadata.level,
-          metadata.subjectCode,
-          metadata.year,
+          metadata.syllabus, // syllabus maps to subjectCode
+          metadata.year.toString(), // Convert number to string
           metadata.session,
           metadata.paperNumber,
-          metadata.paperType
+          metadata.type // type maps to paperType
         );
 
         if (exists) {
@@ -104,24 +104,24 @@ export class PdfStorageService {
         throw new Error(`PDF too large: ${sizeMB.toFixed(2)}MB (max ${this.config.maxFileSizeMB}MB)`);
       }
 
-      // Store in R2
+      // Store in R2 - map metadata fields correctly
       const r2Key = await this.storageManager.storePastPaper(
-        metadata.examBoard,
+        'Cambridge', // Default exam board for PapaCambridge
         metadata.subject,
-        metadata.subjectCode,
+        metadata.syllabus, // syllabus maps to subjectCode
         metadata.level,
-        metadata.year,
+        metadata.year.toString(), // Convert number to string
         metadata.session,
         metadata.paperNumber,
         pdfBuffer,
-        metadata.paperType,
+        metadata.type, // type maps to paperType
         metadata.originalUrl
       );
 
       // Generate public URL using R2 client
       const r2Url = this.storageManager.generatePublicUrl(r2Key);
 
-      console.log(`Successfully stored: ${metadata.subject} ${metadata.year} ${metadata.session} Paper ${metadata.paperNumber} (${metadata.paperType})`);
+      console.log(`Successfully stored: ${metadata.subject} ${metadata.year} ${metadata.session} Paper ${metadata.paperNumber} (${metadata.type})`);
 
       return {
         success: true,

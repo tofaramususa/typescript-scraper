@@ -14,7 +14,7 @@ export const pastPapersTable = pgTable('past_papers', {
   paperNumber: text('paper_number').notNull(), // e.g. 'Paper 11', 'Paper 12'
   paperType: paperTypeEnum('paper_type').notNull().default('qp'), // 'qp' for question paper, 'ms' for mark scheme
   r2Url: text('r2_url').notNull(), // URL of the PDF in R2 storage
-  // embedding: vector('embedding', { dimensions: 1536 }), // OpenAI text-embedding-3-small model produces 1536-dimensional embeddings
+  embedding: vector('embedding', { dimensions: 1536 }), // OpenAI text-embedding-3-small model produces 1536-dimensional embeddings
   embeddingModel: text('embedding_model'), // e.g. 'text-embedding-3-small'
   createdAt: timestamp('created_at').notNull().defaultNow(), // Timestamp when the record was created
   lastUpdated: timestamp('last_updated') // Timestamp when the record was last updated

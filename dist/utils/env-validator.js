@@ -27,9 +27,6 @@ const EnvSchema = z.object({
         .startsWith('sk-', 'OPENAI_API_KEY must start with "sk-"')
         .min(40, 'OPENAI_API_KEY appears to be invalid')
         .optional(),
-    BROWSERLESS_API_KEY: z.string()
-        .min(1, 'Browserless API key is required')
-        .optional(),
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 });
 export function validateEnvironment(requireOpenAI = true) {
@@ -41,7 +38,6 @@ export function validateEnvironment(requireOpenAI = true) {
         R2_BUCKET_NAME: process.env.R2_BUCKET_NAME,
         R2_CUSTOM_DOMAIN: process.env.R2_CUSTOM_DOMAIN,
         OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-        BROWSERLESS_API_KEY: process.env.BROWSERLESS_API_KEY,
         NODE_ENV: process.env.NODE_ENV,
     };
     const schema = requireOpenAI
@@ -133,7 +129,6 @@ export function logEnvironmentStatus() {
     ];
     const optionalVars = [
         'OPENAI_API_KEY',
-        'BROWSERLESS_API_KEY',
         'R2_CUSTOM_DOMAIN'
     ];
     console.log('🔧 Environment Configuration:');

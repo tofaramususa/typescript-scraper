@@ -151,7 +151,7 @@ export class ScraperStorageManager {
     constructor(r2Client) {
         this.r2 = r2Client;
     }
-    async storePastPaper(examBoard, subject, subjectCode, level, year, session, paperNumber, pdfBuffer, paperType = 'qp', originalUrl) {
+    async storePastPaper(examBoard, subject, subjectCode, level, year, session, paperNumber, pdfBuffer, paperType, originalUrl) {
         const key = `past-papers/${examBoard.toLowerCase()}/${level.toLowerCase()}/${subjectCode}/${year}/${session}/${paperNumber}_${paperType}.pdf`;
         const metadata = {
             examBoard,
@@ -169,7 +169,7 @@ export class ScraperStorageManager {
         const result = await this.r2.uploadPDF(key, pdfBuffer, metadata);
         return result.key;
     }
-    async hasPastPaper(examBoard, level, subjectCode, year, session, paperNumber, paperType = 'qp') {
+    async hasPastPaper(examBoard, level, subjectCode, year, session, paperNumber, paperType) {
         const key = `past-papers/${examBoard.toLowerCase()}/${level.toLowerCase()}/${subjectCode}/${year}/${session}/${paperNumber}_${paperType}.pdf`;
         return this.r2.exists(key);
     }

@@ -1,5 +1,5 @@
 import { type SelectPastPaper } from './schema/pastPapers';
-import type { PaperMetadata } from '../utils/url-parser';
+import type { PaperMetadata } from '../downloaders/papacambridge-scraper';
 import type { StorageResult } from './pdf-storage-service';
 import type { EmbeddingResult } from '../embeddings/generateEmbeddings';
 export interface DatabaseResult {
@@ -11,6 +11,7 @@ export interface DatabaseResult {
     reason?: string;
 }
 export declare class DatabaseService {
+    private convertUrlMetadataToScraperMetadata;
     insertPaper(metadata: PaperMetadata, r2Url: string, embedding?: number[], embeddingModel?: string): Promise<DatabaseResult>;
     updatePaperEmbedding(paperId: number, embedding: number[], embeddingModel: string): Promise<{
         success: boolean;
@@ -46,6 +47,7 @@ export declare class DatabaseService {
     findSimilarPapers(queryEmbedding: number[], limit?: number, threshold?: number): Promise<Array<SelectPastPaper & {
         similarity: number;
     }>>;
+    deletePaper(paperId: number): Promise<boolean>;
     private createMetadataKey;
 }
 //# sourceMappingURL=database-service.d.ts.map

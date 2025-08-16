@@ -44,9 +44,9 @@ export declare function createR2Client(config?: Partial<R2Config>): R2StorageCli
 export declare class ScraperStorageManager {
     private r2;
     constructor(r2Client: R2StorageClient);
-    storePastPaper(examBoard: string, subject: string, subjectCode: string, level: string, year: string, session: string, paperNumber: string, pdfBuffer: Buffer, paperType?: 'qp' | 'ms', originalUrl?: string): Promise<string>;
-    hasPastPaper(examBoard: string, level: string, subjectCode: string, year: string, session: string, paperNumber: string, paperType?: 'qp' | 'ms'): Promise<boolean>;
-    getPdfUrl(examBoard: string, level: string, subjectCode: string, year: string, session: string, paperNumber: string, paperType?: 'qp' | 'ms', options?: PresignedUrlOptions): Promise<string>;
+    storePastPaper(examBoard: string, subject: string, subjectCode: string, level: string, year: string, session: string, paperNumber: string, pdfBuffer: Buffer, paperType: 'qp' | 'ms' | 'gt' | 'er' | 'ci', originalUrl?: string): Promise<string>;
+    hasPastPaper(examBoard: string, level: string, subjectCode: string, year: string, session: string, paperNumber: string, paperType: 'qp' | 'ms' | 'gt' | 'er' | 'ci'): Promise<boolean>;
+    getPdfUrl(examBoard: string, level: string, subjectCode: string, year: string, session: string, paperNumber: string, paperType?: 'qp' | 'ms' | 'gt' | 'er' | 'ci', options?: PresignedUrlOptions): Promise<string>;
     generatePublicUrl(key: string): string;
 }
 export {};

@@ -67,7 +67,6 @@ class PastPapersScraperApp {
 
     this.database = new DatabaseService();
 
-
     // Initialize PDF cache
     this.pdfCache = new PdfCache();
   }
@@ -168,9 +167,20 @@ class PastPapersScraperApp {
           
           if (successfullyStored.length > 0) {
             // Generate embeddings from metadata only (no PDF content needed)
+            // Convert scraper metadata to embeddings service format
             const metadataForEmbeddings = successfullyStored.map(result => ({
-              metadata: result.metadata
-            }));
+              metadata: {
+                examBoard: 'CAIE', // PapaCambridge is Cambridge
+                level: result.metadata.level,
+                subject: result.metadata.subject,
+                subjectCode: result.metadata.syllabus,
+                year: result.metadata.year.toString(),
+                session: result.metadata.session,
+                paperNumber: result.metadata.paperNumber,
+                paperType: result.metadata.type as 'qp' | 'ms', // Map type to paperType, filter to qp/ms only
+                originalUrl: result.metadata.originalUrl,
+              }
+            })).filter(item => item.metadata.paperType === 'qp' || item.metadata.paperType === 'ms');
             
             embeddingResults = await withMetrics('generate-embeddings', () =>
               this.embeddings.batchGenerateEmbeddings(
@@ -270,31 +280,108 @@ class PastPapersScraperApp {
 }
 
 /**
+ * Parse command line arguments
+ */
+function parseCliArgs(args: string[]): {
+  url: string;
+  startYear?: number;
+  endYear?: number;
+  generateEmbeddings?: boolean;
+  concurrency?: number;
+} {
+  if (args.length === 0) {
+    console.log('Usage: npm run dev <papacambridge-url> [options]');
+    console.log('');
+    console.log('Options:');
+    console.log('  --start-year <year>    Most recent year to scrape (default: 2024)');
+    console.log('  --end-year <year>      Earliest year to scrape (default: 2014)');
+    console.log('  --no-embeddings        Skip generating AI embeddings');
+    console.log('  --concurrency <num>    Number of concurrent downloads (default: 5)');
+    console.log('');
+    console.log('Examples:');
+    console.log('  npm run dev "https://pastpapers.papacambridge.com/papers/caie/igcse-mathematics-0580"');
+    console.log('  npm run dev "https://pastpapers.papacambridge.com/papers/caie/igcse-mathematics-0580" --start-year 2023 --end-year 2020');
+    console.log('  npm run dev "https://pastpapers.papacambridge.com/papers/caie/igcse-mathematics-0580" --start-year 2022 --end-year 2022 --no-embeddings');
+    process.exit(1);
+  }
+
+  const url = args[0];
+  const config: any = {};
+
+  for (let i = 1; i < args.length; i++) {
+    const arg = args[i];
+    
+    switch (arg) {
+      case '--start-year':
+        const startYear = parseInt(args[i + 1]);
+        if (isNaN(startYear) || startYear < 2000 || startYear > 2030) {
+          throw new Error('Invalid start year. Must be between 2000 and 2030');
+        }
+        config.startYear = startYear;
+        i++; // Skip the next argument since it's the value
+        break;
+        
+      case '--end-year':
+        const endYear = parseInt(args[i + 1]);
+        if (isNaN(endYear) || endYear < 2000 || endYear > 2030) {
+          throw new Error('Invalid end year. Must be between 2000 and 2030');
+        }
+        config.endYear = endYear;
+        i++; // Skip the next argument since it's the value
+        break;
+        
+      case '--no-embeddings':
+        config.generateEmbeddings = false;
+        break;
+        
+      case '--concurrency':
+        const concurrency = parseInt(args[i + 1]);
+        if (isNaN(concurrency) || concurrency < 1 || concurrency > 20) {
+          throw new Error('Invalid concurrency. Must be between 1 and 20');
+        }
+        config.concurrency = concurrency;
+        i++; // Skip the next argument since it's the value
+        break;
+        
+      default:
+        if (arg.startsWith('--')) {
+          throw new Error(`Unknown option: ${arg}`);
+        }
+        break;
+    }
+  }
+
+  // Validate year range
+  if (config.startYear && config.endYear && config.startYear < config.endYear) {
+    throw new Error('Start year must be greater than or equal to end year');
+  }
+
+  return { url, ...config };
+}
+
+/**
  * Entry point for the application
  */
 async function main() {
   const args = process.argv.slice(2);
   
-  if (args.length === 0) {
-    console.log('Usage: npm run dev <papacambridge-url>');
-    console.log('Example: npm run dev "https://pastpapers.papacambridge.com/papers/caie/igcse-mathematics-0580"');
-    process.exit(1);
-  }
-
-  const subjectUrl = args[0];
-  
   try {
-    const app = new PastPapersScraperApp({
-      // You can override config here if needed
-      // startYear: 2023,
-      // endYear: 2020,
-      // generateEmbeddings: false,
-    });
+    const { url, ...config } = parseCliArgs(args);
     
-    await app.run(subjectUrl);
+    // Log the configuration
+    console.log('🔧 Scraper Configuration:');
+    console.log(`   📚 URL: ${url}`);
+    if (config.startYear) console.log(`   📅 Start Year: ${config.startYear}`);
+    if (config.endYear) console.log(`   📅 End Year: ${config.endYear}`);
+    if (config.generateEmbeddings !== undefined) console.log(`   🧠 Generate Embeddings: ${config.generateEmbeddings}`);
+    if (config.concurrency) console.log(`   🔄 Concurrency: ${config.concurrency}`);
+    console.log('');
+    
+    const app = new PastPapersScraperApp(config);
+    await app.run(url);
     
   } catch (error) {
-    console.error('Application failed:', error instanceof Error ? error.message : 'Unknown error');
+    console.error('❌ Application failed:', error instanceof Error ? error.message : 'Unknown error');
     process.exit(1);
   }
 }

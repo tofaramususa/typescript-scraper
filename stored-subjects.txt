@@ -1,0 +1,6 @@
+0460 - Geography Cambridge IGCSE’s and A Levels
+0500 - English Cambridge IGCSE’s and A Levels 
+0580 - Mathematics Cambridge International
+0610 - Biology Cambridge IGCSE’s and A Levels 
+0620 - Chemistry Cambridge IGCSE’s and A Levels
+0625 - Physics

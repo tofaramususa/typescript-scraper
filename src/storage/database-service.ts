@@ -4,6 +4,7 @@ import { eq, and, sql } from 'drizzle-orm';
 import type { PaperMetadata } from '../downloaders/papacambridge-scraper';
 import type { StorageResult } from './pdf-storage-service';
 import type { EmbeddingResult } from '../embeddings/generateEmbeddings';
+import type { PaperMetadata as UrlPaperMetadata } from '../utils/url-parser';
 
 /**
  * Result of database operation
@@ -21,6 +22,24 @@ export interface DatabaseResult {
  * Service for database operations related to past papers
  */
 export class DatabaseService {
+  /**
+   * Converts URL-parser metadata to scraper metadata format
+   */
+  private convertUrlMetadataToScraperMetadata(urlMetadata: UrlPaperMetadata): PaperMetadata {
+    return {
+      title: `${urlMetadata.subject} ${urlMetadata.year} ${urlMetadata.session} Paper ${urlMetadata.paperNumber}`,
+      year: parseInt(urlMetadata.year),
+      session: urlMetadata.session,
+      paperNumber: urlMetadata.paperNumber,
+      type: urlMetadata.paperType as 'qp' | 'ms', // URL parser only supports qp/ms
+      subject: urlMetadata.subject,
+      level: urlMetadata.level,
+      syllabus: urlMetadata.subjectCode,
+      originalUrl: urlMetadata.originalUrl,
+      downloadUrl: urlMetadata.originalUrl, // Same as original for now
+      filename: `${urlMetadata.subjectCode}_${urlMetadata.paperType}_${urlMetadata.paperNumber}.pdf`,
+    };
+  }
   
   /**
    * Inserts a new paper record into the database
@@ -83,7 +102,7 @@ export class DatabaseService {
           embedding: embedding
         }).returning({ id: pastPapersTable.id });
         
-        console.log(`Inserted paper: ${metadata.subject} ${metadata.year} ${metadata.session} Paper ${metadata.paperNumber} (${metadata.paperType}) - ID: ${insertedPaper.id}`);
+        console.log(`Inserted paper: ${metadata.subject} ${metadata.year} ${metadata.session} Paper ${metadata.paperNumber} (${metadata.type}) - ID: ${insertedPaper.id}`);
 
         return {
           success: true,
@@ -94,7 +113,7 @@ export class DatabaseService {
         // Insert without embedding
         const [insertedPaper] = await db.insert(pastPapersTable).values(baseInsertData).returning({ id: pastPapersTable.id });
         
-        console.log(`Inserted paper: ${metadata.subject} ${metadata.year} ${metadata.session} Paper ${metadata.paperNumber} (${metadata.paperType}) - ID: ${insertedPaper.id}`);
+        console.log(`Inserted paper: ${metadata.subject} ${metadata.year} ${metadata.session} Paper ${metadata.paperNumber} (${metadata.type}) - ID: ${insertedPaper.id}`);
 
         return {
           success: true,
@@ -206,7 +225,7 @@ export class DatabaseService {
     const embeddingMap = new Map<string, EmbeddingResult>();
     if (embeddingResults) {
       for (const embeddingResult of embeddingResults) {
-        const key = this.createMetadataKey(embeddingResult.metadata);
+        const key = this.createMetadataKey(this.convertUrlMetadataToScraperMetadata(embeddingResult.metadata));
         embeddingMap.set(key, embeddingResult);
       }
     }
@@ -269,7 +288,7 @@ export class DatabaseService {
       }
 
       // Find the paper in database
-      const existingPaper = await this.findPaper(embeddingResult.metadata);
+      const existingPaper = await this.findPaper(this.convertUrlMetadataToScraperMetadata(embeddingResult.metadata));
       
       if (!existingPaper) {
         results.push({

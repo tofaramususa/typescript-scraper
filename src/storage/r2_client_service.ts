@@ -230,7 +230,7 @@ export class ScraperStorageManager {
     session: string,
     paperNumber: string,
     pdfBuffer: Buffer,
-    paperType: 'qp' | 'ms' = 'qp',
+    paperType: 'qp' | 'ms' | 'gt' | 'er' | 'ci',
     originalUrl?: string
   ): Promise<string> {
     // Organized key structure: examboard/level/subjectcode/year/session/paper_type.pdf
@@ -264,7 +264,7 @@ export class ScraperStorageManager {
     year: string,
     session: string,
     paperNumber: string,
-    paperType: 'qp' | 'ms' = 'qp'
+    paperType: 'qp' | 'ms' | 'gt' | 'er' | 'ci'
   ): Promise<boolean> {
     const key = `past-papers/${examBoard.toLowerCase()}/${level.toLowerCase()}/${subjectCode}/${year}/${session}/${paperNumber}_${paperType}.pdf`;
     return this.r2.exists(key);
@@ -280,7 +280,7 @@ export class ScraperStorageManager {
     year: string,
     session: string,
     paperNumber: string,
-    paperType: 'qp' | 'ms' = 'qp',
+    paperType: 'qp' | 'ms' | 'gt' | 'er' | 'ci' = 'qp',
     options: PresignedUrlOptions = {}
   ): Promise<string> {
     const key = `past-papers/${examBoard.toLowerCase()}/${level.toLowerCase()}/${subjectCode}/${year}/${session}/${paperNumber}_${paperType}.pdf`;
