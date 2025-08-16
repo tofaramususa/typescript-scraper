@@ -37,3 +37,7 @@ id = "2fd796531ff54144be1de4157bb17485"
 # Database (Neon via HTTP)
 [env.production]
 [env.production.vars]
+
+# wrangler.toml (wrangler v3.88.0^)
+[observability.logs]
+enabled = true
